@@ -6,73 +6,102 @@ import { Button } from "@/components/ui/button"
 import { TrendingUp, Users, Wallet, Activity, ArrowUpRight, ArrowDownRight, MoreHorizontal } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-
-const stats = [
-  {
-    title: "Total Users",
-    value: "12,543",
-    change: "+12.5%",
-    trend: "up",
-    icon: Users,
-  },
-  {
-    title: "Active Markets",
-    value: "847",
-    change: "+3.2%",
-    trend: "up",
-    icon: TrendingUp,
-  },
-  {
-    title: "Total Volume",
-    value: "$2.4M",
-    change: "-2.1%",
-    trend: "down",
-    icon: Wallet,
-  },
-  {
-    title: "Platform Activity",
-    value: "98.2%",
-    change: "+0.8%",
-    trend: "up",
-    icon: Activity,
-  },
-]
-
-const recentActivity = [
-  {
-    id: "1",
-    type: "Market Created",
-    user: "john.doe@email.com",
-    market: "Tesla Q4 Earnings",
-    status: "pending",
-    time: "2 minutes ago",
-  },
-  {
-    id: "2",
-    type: "Withdrawal",
-    user: "jane.smith@email.com",
-    amount: "$1,250",
-    status: "completed",
-    time: "5 minutes ago",
-  },
-  {
-    id: "3",
-    type: "User Registration",
-    user: "mike.wilson@email.com",
-    status: "active",
-    time: "12 minutes ago",
-  },
-  {
-    id: "4",
-    type: "Market Resolved",
-    user: "admin",
-    market: "Bitcoin Price Dec 2024",
-    status: "resolved",
-    time: "1 hour ago",
-  },
-]
+import { useEffect, useState } from "react"
+import { getAllUsers, getAllMarkets, getAllPortfolios, getAllOrders, getAllSettings } from "@/lib/api"
 
 export default function DashboardPage() {
+  const [stats, setStats] = useState([
+    { title: "Total Users", value: "-", change: "-", trend: "up", icon: Users },
+    { title: "Active Markets", value: "-", change: "-", trend: "up", icon: TrendingUp },
+    { title: "Total Portfolios", value: "-", change: "-", trend: "up", icon: Wallet },
+    { title: "Total Orders", value: "-", change: "-", trend: "up", icon: Activity },
+  ])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchStats() {
+      setLoading(true)
+      try {
+        const [users, markets, portfolios, orders] = await Promise.all([
+          getAllUsers(),
+          getAllMarkets(),
+          getAllPortfolios(),
+          getAllOrders(),
+        ])
+        setStats([
+          {
+            title: "Total Users",
+            value: users.length.toLocaleString(),
+            change: "+0%", // Placeholder, update with real data if available
+            trend: "up",
+            icon: Users,
+          },
+          {
+            title: "Active Markets",
+            value: markets.length.toLocaleString(),
+            change: "+0%",
+            trend: "up",
+            icon: TrendingUp,
+          },
+          {
+            title: "Total Portfolios",
+            value: portfolios.length.toLocaleString(),
+            change: "+0%",
+            trend: "up",
+            icon: Wallet,
+          },
+          {
+            title: "Total Orders",
+            value: orders.length.toLocaleString(),
+            change: "+0%",
+            trend: "up",
+            icon: Activity,
+          },
+        ])
+      } catch (e) {
+        // Optionally handle error
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchStats()
+  }, [])
+
+  // Keep recentActivity static for now, unless an endpoint is available
+  const recentActivity = [
+    {
+      id: "1",
+      type: "Market Created",
+      user: "john.doe@email.com",
+      market: "Tesla Q4 Earnings",
+      status: "pending",
+      time: "2 minutes ago",
+    },
+    {
+      id: "2",
+      type: "Withdrawal",
+      user: "jane.smith@email.com",
+      amount: "$1,250",
+      status: "completed",
+      time: "5 minutes ago",
+    },
+    {
+      id: "3",
+      type: "User Registration",
+      user: "mike.wilson@email.com",
+      status: "active",
+      time: "12 minutes ago",
+    },
+    {
+      id: "4",
+      type: "Market Resolved",
+      user: "admin",
+      market: "Bitcoin Price Dec 2024",
+      status: "resolved",
+      time: "1 hour ago",
+    },
+  ]
+
   return (
     <div className="space-y-6">
       <div>
@@ -89,7 +118,7 @@ export default function DashboardPage() {
               <stat.icon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
+              <div className="text-2xl font-bold">{loading ? <span className="animate-pulse">...</span> : stat.value}</div>
               <div className="flex items-center text-xs text-muted-foreground">
                 {stat.trend === "up" ? (
                   <ArrowUpRight className="mr-1 h-3 w-3 text-green-500" />
