@@ -73,6 +73,9 @@ async function apiFetch<T>(
   return res.json();
 }
 
+//  ---- Getting Profile ----
+export const getProfile = () => apiFetch<User>('/admin/profile');
+
 // --- User Endpoints ---
 export const getAllUsers = () => apiFetch<User[]>('/admin/users');
 export const createUser = (data: Partial<User>) =>

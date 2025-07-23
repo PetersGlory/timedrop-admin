@@ -4,6 +4,7 @@ import type React from "react"
 
 import { createContext, useContext, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { login as apiLogin, getProfile } from "@/lib/api"
 
 interface User {
   id: string
@@ -28,32 +29,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Check for existing token on mount
-    const token = localStorage.getItem("admin_token")
+    const token = localStorage.getItem("jwt")
     if (token) {
-      // Validate token and get user info
-      // This would normally be an API call
-      setUser({
-        id: "1",
-        name: "Admin User",
-        email: "admin@timedrop.com",
-        role: "admin",
-      })
+      // Validate token and get user info from API
+      getProfile()
+        .then((profile) => {
+          setUser(profile)
+        })
+        .catch(() => {
+          localStorage.removeItem("jwt")
+          setUser(null)
+        })
+    } else {
+      setIsLoading(false)
     }
-    setIsLoading(false)
   }, [])
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      // This would be an actual API call
-      if (email === "admin@timedrop.com" && password === "admin123") {
-        const token = "mock_jwt_token"
-        localStorage.setItem("admin_token", token)
-        setUser({
-          id: "1",
-          name: "Admin User",
-          email: "admin@timedrop.com",
-          role: "admin",
-        })
+      const res = await apiLogin(email, password)
+      if (res && res.token && res.user) {
+        localStorage.setItem("jwt", res.token)
+        setUser(res.user)
         return true
       }
       return false
@@ -64,9 +61,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const logout = () => {
-    localStorage.removeItem("admin_token")
+    localStorage.removeItem("jwt")
     setUser(null)
-    router.push("/admin/login")
+    router.push("/")
   }
 
   return <AuthContext.Provider value={{ user, login, logout, isLoading }}>{children}</AuthContext.Provider>
