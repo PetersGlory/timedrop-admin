@@ -20,6 +20,15 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
+import { useEffect } from "react";
+import {
+  getAllMarkets,
+  createMarket,
+  updateMarket,
+  deleteMarket,
+} from "@/lib/api";
+
+
 const orderedCategories = [
   "News",
   "Climate",
@@ -84,30 +93,106 @@ const markets = [
 
 export default function MarketsPage() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedMarket, setSelectedMarket] = useState<any>(null)
-  const [marketCreate, setMarketCreat] = useState({
-    title: ""
-  })
+  const [selectedMarket, setSelectedMarket] = useState<any>(null);
+  const [marketCreate, setMarketCreate] = useState({
+    title: "",
+    description: "",
+    category: "",
+    endDate: "",
+    image: null as File | null,
+  });
+  const [marketsData, setMarketsData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const filteredMarkets = markets.filter(
-    (market) =>
-      market.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      market.category.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+  // Fetch markets from API
+  useEffect(() => {
+    const fetchMarkets = async () => {
+      setLoading(true);
+      try {
+        const res = await getAllMarkets();
+        setMarketsData(res.markets || []);
+      } catch (e) {
+        // Optionally handle error
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMarkets();
+  }, []);
 
-  const handleApprove = (marketId: string) => {
-    console.log("Approving market:", marketId)
-    // API call to approve market
-  }
+  const filteredMarkets = marketsData.filter(
+    (market: any) =>
+      (market.title || market.name || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (market.category || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase())
+  );
 
-  const handleReject = (marketId: string) => {
-    console.log("Rejecting market:", marketId)
-    // API call to reject market
-  }
+  const handleApprove = async (marketId: string) => {
+    try {
+      await updateMarket(marketId, { status: "approved" });
+      setMarketsData((prev) =>
+        prev.map((m) =>
+          m.id === marketId ? { ...m, status: "approved" } : m
+        )
+      );
+    } catch (e) {
+      // Optionally handle error
+    }
+  };
 
-  const handleCreateMarket = async () =>{
+  const handleReject = async (marketId: string) => {
+    try {
+      await updateMarket(marketId, { status: "rejected" });
+      setMarketsData((prev) =>
+        prev.map((m) =>
+          m.id === marketId ? { ...m, status: "rejected" } : m
+        )
+      );
+    } catch (e) {
+      // Optionally handle error
+    }
+  };
 
-  }
+  const handleCreateMarket = async () => {
+    try {
+      const { image, ...rest } = marketCreate;
+      let newMarket;
+      if (image) {
+        // If image upload is needed, use FormData
+        const formData = new FormData();
+        Object.entries(rest).forEach(([key, value]) => {
+          formData.append(key, value as string);
+        });
+        formData.append("image", image);
+        // You'd need a custom endpoint for multipart/form-data
+        // For now, fallback to JSON if not supported
+        // newMarket = await createMarket(formData);
+      } else {
+        // Fix type: map rest fields to correct Market property names
+        newMarket = await createMarket({
+          name: rest.title,
+          // description: rest.description,
+          // category: rest.category,
+          // closeTime: rest.endDate,
+        });
+      }
+      if (newMarket) {
+        setMarketsData((prev) => [newMarket, ...prev]);
+        setMarketCreate({
+          title: "",
+          description: "",
+          category: "",
+          endDate: "",
+          image: null,
+        });
+      }
+    } catch (e) {
+      // Optionally handle error
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -203,77 +288,102 @@ export default function MarketsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredMarkets.map((market) => (
-                <TableRow key={market.id}>
-                  <TableCell>
-                    <div className="max-w-[300px]">
-                      <div className="font-medium truncate">{market.title}</div>
-                      <div className="text-sm text-muted-foreground">Created {market.created}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm">{market.creator}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{market.category}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        market.status === "approved"
-                          ? "default"
-                          : market.status === "pending"
-                            ? "secondary"
-                            : "destructive"
-                      }
-                    >
-                      {market.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-medium">{market.volume}</TableCell>
-                  <TableCell>{market.participants.toLocaleString()}</TableCell>
-                  <TableCell>{market.endDate}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      {market.status === "pending" && (
-                        <>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => handleApprove(market.id)}
-                            className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
-                          >
-                            <Check className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => handleReject(market.id)}
-                            className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </>
-                      )}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setSelectedMarket(market)}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit Market
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+              {filteredMarkets.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8}>
+                    <div className="flex flex-col items-center justify-center py-12">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-12 w-12 mb-4 text-muted-foreground"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={1.5}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M12 8v4m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"
+                        />
+                      </svg>
+                      <span className="text-lg font-medium text-muted-foreground">No markets found</span>
+                      <span className="text-sm text-muted-foreground mt-1">Try adjusting your search or filters.</span>
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                filteredMarkets.map((market) => (
+                  <TableRow key={market.id}>
+                    <TableCell>
+                      <div className="max-w-[300px]">
+                        <div className="font-medium truncate">{market.title}</div>
+                        <div className="text-sm text-muted-foreground">Created {market.created}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm">{market.creator}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{market.category}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          market.status === "approved"
+                            ? "default"
+                            : market.status === "pending"
+                              ? "secondary"
+                              : "destructive"
+                        }
+                      >
+                        {market.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-medium">{market.volume}</TableCell>
+                    <TableCell>{market.participants.toLocaleString()}</TableCell>
+                    <TableCell>{market.endDate}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        {market.status === "pending" && (
+                          <>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => handleApprove(market.id)}
+                              className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                            >
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => handleReject(market.id)}
+                              className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setSelectedMarket(market)}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit Market
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>

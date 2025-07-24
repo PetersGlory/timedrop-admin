@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -10,80 +10,127 @@ import { Search, MoreHorizontal, UserCheck, UserX, Shield, Mail, Ban } from "luc
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  getAllUsers,
+  deleteUser,
+  updateUser,
+  type User,
+  type UserResponse,
+} from "@/lib/api"
 
-const users = [
-  {
-    id: "1",
-    name: "John Doe",
-    email: "john.doe@email.com",
-    avatar: "/placeholder-user.jpg",
-    role: "user",
-    status: "active",
-    balance: "$1,234.56",
-    marketsCreated: 5,
-    totalVolume: "$12,450",
-    joinDate: "2024-01-15",
-    lastActive: "2 hours ago",
-  },
-  {
-    id: "2",
-    name: "Jane Smith",
-    email: "jane.smith@email.com",
-    avatar: "/placeholder-user.jpg",
-    role: "premium",
-    status: "active",
-    balance: "$5,678.90",
-    marketsCreated: 12,
-    totalVolume: "$45,230",
-    joinDate: "2023-12-10",
-    lastActive: "1 day ago",
-  },
-  {
-    id: "3",
-    name: "Mike Wilson",
-    email: "mike.wilson@email.com",
-    avatar: "/placeholder-user.jpg",
-    role: "user",
-    status: "suspended",
-    balance: "$234.12",
-    marketsCreated: 2,
-    totalVolume: "$1,890",
-    joinDate: "2024-01-12",
-    lastActive: "1 week ago",
-  },
-  {
-    id: "4",
-    name: "Sarah Johnson",
-    email: "sarah.johnson@email.com",
-    avatar: "/placeholder-user.jpg",
-    role: "moderator",
-    status: "active",
-    balance: "$3,456.78",
-    marketsCreated: 8,
-    totalVolume: "$23,450",
-    joinDate: "2023-11-05",
-    lastActive: "5 minutes ago",
-  },
-]
+// interface ExtendedUser extends User {
+//   avatar?: string
+//   balance?: string | number
+//   marketsCreated?: number
+//   totalVolume?: string | number
+//   joinDate?: string
+//   lastActive?: string
+//   name?: string
+//   status?: string
+// }
 
 export default function UsersPage() {
+  const [users, setUsers] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [viewingUser, setViewingUser] = useState<any>()
+  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [roleFilter, setRoleFilter] = useState("all")
 
+  // Stats
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    suspended: 0,
+    premium: 0,
+  })
+
+  useEffect(() => {
+    let ignore = false
+    setLoading(true)
+    setError(null)
+    getAllUsers()
+      .then((res: UserResponse) => {
+        if (ignore) return
+        // Map/extend users based on the provided API response structure
+        const usersWithDefaults: any[] = (res.users || []).map((u:any) => {
+          const name = [u.firstName, u.lastName].filter(Boolean).join(" ")
+          // For demo, status is "active" if isVerified, else "pending"
+          // You can adjust this logic as needed
+          let status: string = u.isVerified ? "active" : "pending"
+          // Optionally, you could add logic for "suspended" or "banned" if your backend supports it
+          return {
+            ...u,
+            name,
+            avatar: "/placeholder-user.jpg",
+            balance: "-",
+            marketsCreated: 0,
+            totalVolume: "-",
+            joinDate: u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "-",
+            lastActive: u.updatedAt ? new Date(u.updatedAt).toLocaleDateString() : "-",
+            status,
+          }
+        })
+        setUsers(usersWithDefaults)
+
+        // Calculate stats
+        let total = usersWithDefaults.length
+        let active = usersWithDefaults.filter((u) => u.status === "active").length
+        let suspended = usersWithDefaults.filter((u) => u.status === "suspended").length
+        let premium = usersWithDefaults.filter((u) => u.role === "premium").length
+        setStats({ total, active, suspended, premium })
+      })
+      .catch((err) => {
+        setError("Failed to load users")
+      })
+      .finally(() => setLoading(false))
+    return () => {
+      ignore = true
+    }
+  }, [])
+
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase())
+      (user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email?.toLowerCase().includes(searchTerm.toLowerCase()))
     const matchesStatus = statusFilter === "all" || user.status === statusFilter
     const matchesRole = roleFilter === "all" || user.role === roleFilter
 
     return matchesSearch && matchesStatus && matchesRole
   })
 
-  const handleUserAction = (userId: string, action: string) => {
-    console.log(`${action} user:`, userId)
-    // API call to perform user action
+  const handleUserAction = async (userId: string, action: string) => {
+    // You can implement actual API calls here
+    if (action === "ban") {
+      try {
+        await deleteUser(userId)
+        setUsers((prev) => prev.filter((u) => u.id !== userId))
+      } catch (e) {
+        setError("Failed to ban user")
+      }
+    } else if (action === "suspend") {
+      try {
+        await updateUser(userId, { status: "suspended" })
+        setUsers((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, status: "suspended" } : u))
+        )
+      } catch (e) {
+        setError("Failed to suspend user")
+      }
+    } else if (action === "activate") {
+      try {
+        await updateUser(userId, { status: "active" })
+        setUsers((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, status: "active" } : u))
+        )
+      } catch (e) {
+        setError("Failed to activate user")
+      }
+    } else {
+      // For "view" and "message", just log for now
+      console.log(`${action} user:`, userId)
+    }
   }
 
   return (
@@ -101,8 +148,11 @@ export default function UsersPage() {
             <UserCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12,543</div>
-            <p className="text-xs text-muted-foreground">+12% from last month</p>
+            <div className="text-2xl font-bold">{stats.total}</div>
+            <p className="text-xs text-muted-foreground">
+              {/* Placeholder: you can add real stats if available */}
+              {stats.total > 0 ? "+12% from last month" : ""}
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -111,8 +161,10 @@ export default function UsersPage() {
             <UserCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">11,234</div>
-            <p className="text-xs text-muted-foreground">89.6% of total</p>
+            <div className="text-2xl font-bold">{stats.active}</div>
+            <p className="text-xs text-muted-foreground">
+              {stats.total > 0 ? `${((stats.active / stats.total) * 100).toFixed(1)}% of total` : ""}
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -121,8 +173,10 @@ export default function UsersPage() {
             <UserX className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">234</div>
-            <p className="text-xs text-muted-foreground">1.9% of total</p>
+            <div className="text-2xl font-bold">{stats.suspended}</div>
+            <p className="text-xs text-muted-foreground">
+              {stats.total > 0 ? `${((stats.suspended / stats.total) * 100).toFixed(1)}% of total` : ""}
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -131,8 +185,10 @@ export default function UsersPage() {
             <Shield className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,075</div>
-            <p className="text-xs text-muted-foreground">8.6% of total</p>
+            <div className="text-2xl font-bold">{stats.premium}</div>
+            <p className="text-xs text-muted-foreground">
+              {stats.total > 0 ? `${((stats.premium / stats.total) * 100).toFixed(1)}% of total` : ""}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -160,6 +216,7 @@ export default function UsersPage() {
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="suspended">Suspended</SelectItem>
                   <SelectItem value="banned">Banned</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={roleFilter} onValueChange={setRoleFilter}>
@@ -171,105 +228,226 @@ export default function UsersPage() {
                   <SelectItem value="user">User</SelectItem>
                   <SelectItem value="premium">Premium</SelectItem>
                   <SelectItem value="moderator">Moderator</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Balance</TableHead>
-                <TableHead>Markets</TableHead>
-                <TableHead>Volume</TableHead>
-                <TableHead>Last Active</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
-                        <AvatarFallback>
-                          {user.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="font-medium">{user.name}</div>
-                        <div className="text-sm text-muted-foreground">{user.email}</div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        user.role === "moderator" ? "default" : user.role === "premium" ? "secondary" : "outline"
-                      }
-                    >
-                      {user.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        user.status === "active" ? "default" : user.status === "suspended" ? "secondary" : "destructive"
-                      }
-                    >
-                      {user.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-medium">{user.balance}</TableCell>
-                  <TableCell>{user.marketsCreated}</TableCell>
-                  <TableCell>{user.totalVolume}</TableCell>
-                  <TableCell className="text-muted-foreground">{user.lastActive}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleUserAction(user.id, "view")}>
-                          <UserCheck className="mr-2 h-4 w-4" />
-                          View Profile
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleUserAction(user.id, "message")}>
-                          <Mail className="mr-2 h-4 w-4" />
-                          Send Message
-                        </DropdownMenuItem>
-                        {user.status === "active" ? (
-                          <DropdownMenuItem onClick={() => handleUserAction(user.id, "suspend")}>
-                            <UserX className="mr-2 h-4 w-4" />
-                            Suspend User
-                          </DropdownMenuItem>
-                        ) : (
-                          <DropdownMenuItem onClick={() => handleUserAction(user.id, "activate")}>
-                            <UserCheck className="mr-2 h-4 w-4" />
-                            Activate User
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem onClick={() => handleUserAction(user.id, "ban")} className="text-red-600">
-                          <Ban className="mr-2 h-4 w-4" />
-                          Ban User
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          {loading ? (
+            <div className="text-center py-8 text-muted-foreground">Loading users...</div>
+          ) : error ? (
+            <div className="text-center py-8 text-red-500">{error}</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Balance</TableHead>
+                  <TableHead>Markets</TableHead>
+                  <TableHead>Volume</TableHead>
+                  <TableHead>Last Active</TableHead>
+                  <TableHead className="w-[100px]">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8}>
+                      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                        <span className="text-4xl mb-2">😕</span>
+                        <div className="font-semibold text-lg">No users found</div>
+                        <div className="text-sm">Try adjusting your filters or search term.</div>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  <>
+                    {/* Profile Modal */}
+                    {viewingUser && (
+                      <div
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+                        onClick={() => setViewingUser(null)}
+                      >
+                        <div
+                          className="bg-card rounded-lg shadow-lg p-8 w-full max-w-md relative"
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <button
+                            className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
+                            onClick={() => setViewingUser(null)}
+                            aria-label="Close"
+                          >
+                            <span className="text-2xl">&times;</span>
+                          </button>
+                          <div className="flex flex-col items-center gap-4">
+                            <Avatar className="h-20 w-20">
+                              <AvatarImage src={viewingUser.avatar || "/placeholder.svg"} alt={viewingUser.name || "User"} />
+                              <AvatarFallback>
+                                {(viewingUser.name || "U")
+                                  .split(" ")
+                                  .map((n: string) => n[0])
+                                  .join("")}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="text-center">
+                              <div className="font-bold text-xl">{viewingUser.name}</div>
+                              <div className="text-muted-foreground">{viewingUser.email}</div>
+                            </div>
+                            <div className="flex flex-wrap gap-2 justify-center mt-2">
+                              <Badge
+                                variant={
+                                  viewingUser.role === "moderator"
+                                    ? "default"
+                                    : viewingUser.role === "premium"
+                                    ? "secondary"
+                                    : viewingUser.role === "admin"
+                                    ? "default"
+                                    : "outline"
+                                }
+                              >
+                                {viewingUser.role}
+                              </Badge>
+                              <Badge
+                                variant={
+                                  viewingUser.status === "active"
+                                    ? "default"
+                                    : viewingUser.status === "suspended"
+                                    ? "secondary"
+                                    : viewingUser.status === "pending"
+                                    ? "outline"
+                                    : "destructive"
+                                }
+                              >
+                                {viewingUser.status}
+                              </Badge>
+                            </div>
+                            <div className="w-full mt-4">
+                              <div className="flex justify-between text-sm mb-1">
+                                <span className="text-muted-foreground">Balance:</span>
+                                <span>{viewingUser.balance ?? "-"}</span>
+                              </div>
+                              <div className="flex justify-between text-sm mb-1">
+                                <span className="text-muted-foreground">Markets Created:</span>
+                                <span>{viewingUser.marketsCreated ?? "-"}</span>
+                              </div>
+                              <div className="flex justify-between text-sm mb-1">
+                                <span className="text-muted-foreground">Total Volume:</span>
+                                <span>{viewingUser.totalVolume ?? "-"}</span>
+                              </div>
+                              <div className="flex justify-between text-sm mb-1">
+                                <span className="text-muted-foreground">Join Date:</span>
+                                <span>{viewingUser.joinDate ?? "-"}</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Last Active:</span>
+                                <span>{viewingUser.lastActive ?? "-"}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {filteredUsers.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name || "User"} />
+                              <AvatarFallback>
+                                {(user.name || "U")
+                                  .split(" ")
+                                  .map((n: string) => n[0])
+                                  .join("")}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-medium">{user.name}</div>
+                              <div className="text-sm text-muted-foreground">{user.email}</div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              user.role === "moderator"
+                                ? "default"
+                                : user.role === "premium"
+                                ? "secondary"
+                                : user.role === "admin"
+                                ? "default"
+                                : "outline"
+                            }
+                          >
+                            {user.role}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              user.status === "active"
+                                ? "default"
+                                : user.status === "suspended"
+                                ? "secondary"
+                                : user.status === "pending"
+                                ? "outline"
+                                : "destructive"
+                            }
+                          >
+                            {user.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium">{user.balance ?? "-"}</TableCell>
+                        <TableCell>{user.marketsCreated ?? "-"}</TableCell>
+                        <TableCell>{user.totalVolume ?? "-"}</TableCell>
+                        <TableCell className="text-muted-foreground">{user.lastActive ?? "-"}</TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setViewingUser(user)}>
+                                <UserCheck className="mr-2 h-4 w-4" />
+                                View Profile
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleUserAction(user.id, "message")}>
+                                <Mail className="mr-2 h-4 w-4" />
+                                Send Message
+                              </DropdownMenuItem>
+                              {user.status === "active" ? (
+                                <DropdownMenuItem onClick={() => handleUserAction(user.id, "suspend")}>
+                                  <UserX className="mr-2 h-4 w-4" />
+                                  Suspend User
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem onClick={() => handleUserAction(user.id, "activate")}>
+                                  <UserCheck className="mr-2 h-4 w-4" />
+                                  Activate User
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem
+                                onClick={() => handleUserAction(user.id, "ban")}
+                                className="text-red-600"
+                              >
+                                <Ban className="mr-2 h-4 w-4" />
+                                Ban User
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </>
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
