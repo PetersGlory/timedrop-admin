@@ -10,6 +10,10 @@ export interface User {
   // Add more fields as needed
 }
 
+export interface UserResponse {
+    users: User[]
+}
+
 export interface Market {
   id: string;
   name: string;
@@ -59,7 +63,7 @@ async function apiFetch<T>(
     ...(options.headers || {}),
   };
   if (requireAuth) {
-    const token = localStorage.getItem('jwt');
+    const token = localStorage.getItem('jwt_token');
     if (token) (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
   }
   const res = await fetch(`${BASE_URL}${endpoint}`, {
@@ -74,10 +78,10 @@ async function apiFetch<T>(
 }
 
 //  ---- Getting Profile ----
-export const getProfile = () => apiFetch<User>('/admin/profile');
+export const getProfile = () => apiFetch<User>('/auth/me');
 
 // --- User Endpoints ---
-export const getAllUsers = () => apiFetch<User[]>('/admin/users');
+export const getAllUsers = () => apiFetch<UserResponse>('/admin/users');
 export const createUser = (data: Partial<User>) =>
   apiFetch<User>('/admin/users', {
     method: 'POST',
@@ -103,7 +107,7 @@ export const login = (email: string, password: string) =>
   }, false);
 
 // --- Market Endpoints ---
-export const getAllMarkets = () => apiFetch<Market[]>('/admin/markets');
+export const getAllMarkets = () => apiFetch<{markets:Market[]}>('/admin/markets');
 export const createMarket = (data: Partial<Market>) =>
   apiFetch<Market>('/admin/markets', {
     method: 'POST',
@@ -122,7 +126,7 @@ export const deleteMarket = (id: string) =>
   });
 
 // --- Order Endpoints ---
-export const getAllOrders = () => apiFetch<Order[]>('/admin/orders');
+export const getAllOrders = () => apiFetch<{orders:Order[]}>('/admin/orders');
 export const createOrder = (data: Partial<Order>) =>
   apiFetch<Order>('/admin/orders', {
     method: 'POST',
@@ -141,7 +145,7 @@ export const deleteOrder = (id: string) =>
   });
 
 // --- Portfolio Endpoints ---
-export const getAllPortfolios = () => apiFetch<Portfolio[]>('/admin/portfolios');
+export const getAllPortfolios = () => apiFetch<{portfolios:Portfolio[]}>('/admin/portfolios');
 export const createPortfolio = (data: Partial<Portfolio>) =>
   apiFetch<Portfolio>('/admin/portfolios', {
     method: 'POST',
@@ -161,6 +165,7 @@ export const deletePortfolio = (id: string) =>
 
 // --- Settings Endpoint ---
 export const getAllSettings = () => apiFetch<Settings>('/admin/settings');
+export const getAllActivities = () => apiFetch<any>('/admin/recent-activities');
 
 // --- Settings CRUD Endpoints ---
 export const createSettings = (data: Partial<Settings>) =>

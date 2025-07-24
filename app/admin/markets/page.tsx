@@ -85,6 +85,9 @@ const markets = [
 export default function MarketsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedMarket, setSelectedMarket] = useState<any>(null)
+  const [marketCreate, setMarketCreat] = useState({
+    title: ""
+  })
 
   const filteredMarkets = markets.filter(
     (market) =>
@@ -100,6 +103,10 @@ export default function MarketsPage() {
   const handleReject = (marketId: string) => {
     console.log("Rejecting market:", marketId)
     // API call to reject market
+  }
+
+  const handleCreateMarket = async () =>{
+
   }
 
   return (
@@ -160,7 +167,7 @@ export default function MarketsPage() {
                   </p>
                 </div>
               </div>
-              <Button>Create Market</Button>
+              <Button onClick={handleCreateMarket}>Create Market</Button>
             </div>
           </DialogContent>
         </Dialog>

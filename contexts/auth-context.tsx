@@ -23,13 +23,13 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<User | any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
     // Check for existing token on mount
-    const token = localStorage.getItem("jwt")
+    const token = localStorage.getItem("jwt_token")
     if (token) {
       // Validate token and get user info from API
       getProfile()
@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(profile)
         })
         .catch(() => {
-          localStorage.removeItem("jwt")
+          // localStorage.removeItem("jwt_token")
           setUser(null)
         })
     } else {
@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await apiLogin(email, password)
       if (res && res.token && res.user) {
-        localStorage.setItem("jwt", res.token)
+        localStorage.setItem("jwt_token", res.token)
         setUser(res.user)
         return true
       }
@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const logout = () => {
-    localStorage.removeItem("jwt")
+    localStorage.removeItem("jwt_token")
     setUser(null)
     router.push("/")
   }

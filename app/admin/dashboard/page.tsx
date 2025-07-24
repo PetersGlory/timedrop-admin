@@ -7,7 +7,7 @@ import { TrendingUp, Users, Wallet, Activity, ArrowUpRight, ArrowDownRight, More
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useEffect, useState } from "react"
-import { getAllUsers, getAllMarkets, getAllPortfolios, getAllOrders, getAllSettings } from "@/lib/api"
+import { getAllUsers, getAllMarkets, getAllPortfolios, getAllOrders, getAllSettings, getAllActivities } from "@/lib/api"
 
 export default function DashboardPage() {
   const [stats, setStats] = useState([
@@ -17,47 +17,50 @@ export default function DashboardPage() {
     { title: "Total Orders", value: "-", change: "-", trend: "up", icon: Activity },
   ])
   const [loading, setLoading] = useState(true)
+  const [recentActivity, setRecentActivity] = useState<any>()
 
   useEffect(() => {
     async function fetchStats() {
       setLoading(true)
       try {
-        const [users, markets, portfolios, orders] = await Promise.all([
+        const [users, markets, portfolios, orders, recentActivities] = await Promise.all([
           getAllUsers(),
           getAllMarkets(),
           getAllPortfolios(),
           getAllOrders(),
+          getAllActivities()
         ])
         setStats([
           {
             title: "Total Users",
-            value: users.length.toLocaleString(),
+            value: users.users.length.toLocaleString(),
             change: "+0%", // Placeholder, update with real data if available
             trend: "up",
             icon: Users,
           },
           {
             title: "Active Markets",
-            value: markets.length.toLocaleString(),
+            value: markets.markets.length.toLocaleString(),
             change: "+0%",
             trend: "up",
             icon: TrendingUp,
           },
           {
             title: "Total Portfolios",
-            value: portfolios.length.toLocaleString(),
+            value: portfolios.portfolios.length.toLocaleString(),
             change: "+0%",
             trend: "up",
             icon: Wallet,
           },
           {
             title: "Total Orders",
-            value: orders.length.toLocaleString(),
+            value: orders.orders.length.toLocaleString(),
             change: "+0%",
             trend: "up",
             icon: Activity,
           },
         ])
+        setRecentActivity(recentActivities.activities)
       } catch (e) {
         // Optionally handle error
       } finally {
@@ -68,39 +71,39 @@ export default function DashboardPage() {
   }, [])
 
   // Keep recentActivity static for now, unless an endpoint is available
-  const recentActivity = [
-    {
-      id: "1",
-      type: "Market Created",
-      user: "john.doe@email.com",
-      market: "Tesla Q4 Earnings",
-      status: "pending",
-      time: "2 minutes ago",
-    },
-    {
-      id: "2",
-      type: "Withdrawal",
-      user: "jane.smith@email.com",
-      amount: "$1,250",
-      status: "completed",
-      time: "5 minutes ago",
-    },
-    {
-      id: "3",
-      type: "User Registration",
-      user: "mike.wilson@email.com",
-      status: "active",
-      time: "12 minutes ago",
-    },
-    {
-      id: "4",
-      type: "Market Resolved",
-      user: "admin",
-      market: "Bitcoin Price Dec 2024",
-      status: "resolved",
-      time: "1 hour ago",
-    },
-  ]
+  // const recentActivity = [
+  //   {
+  //     id: "1",
+  //     type: "Market Created",
+  //     user: "john.doe@email.com",
+  //     market: "Tesla Q4 Earnings",
+  //     status: "pending",
+  //     time: "2 minutes ago",
+  //   },
+  //   {
+  //     id: "2",
+  //     type: "Withdrawal",
+  //     user: "jane.smith@email.com",
+  //     amount: "$1,250",
+  //     status: "completed",
+  //     time: "5 minutes ago",
+  //   },
+  //   {
+  //     id: "3",
+  //     type: "User Registration",
+  //     user: "mike.wilson@email.com",
+  //     status: "active",
+  //     time: "12 minutes ago",
+  //   },
+  //   {
+  //     id: "4",
+  //     type: "Market Resolved",
+  //     user: "admin",
+  //     market: "Bitcoin Price Dec 2024",
+  //     status: "resolved",
+  //     time: "1 hour ago",
+  //   },
+  // ]
 
   return (
     <div className="space-y-6">
@@ -151,12 +154,13 @@ export default function DashboardPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {recentActivity.map((activity) => (
+              {recentActivity && recentActivity.map((activity:any) => (
                 <TableRow key={activity.id}>
                   <TableCell className="font-medium">{activity.type}</TableCell>
                   <TableCell>
-                    <div>
-                      <div className="font-medium">{activity.user}</div>
+                    <div className="flex flex-col items-start">
+                      <div className="font-medium">Name: {activity?.data?.firstName}</div>
+                      <div className="font-medium">Desc: {activity?.description}</div>
                       {activity.market && <div className="text-sm text-muted-foreground">{activity.market}</div>}
                       {activity.amount && <div className="text-sm text-muted-foreground">{activity.amount}</div>}
                     </div>
@@ -174,7 +178,7 @@ export default function DashboardPage() {
                       {activity.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{activity.time}</TableCell>
+                  <TableCell className="text-muted-foreground">{activity.timestamp}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
