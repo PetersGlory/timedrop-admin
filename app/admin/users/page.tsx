@@ -179,7 +179,7 @@ export default function UsersPage() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        {/* <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Premium Users</CardTitle>
             <Shield className="h-4 w-4 text-muted-foreground" />
@@ -190,7 +190,7 @@ export default function UsersPage() {
               {stats.total > 0 ? `${((stats.premium / stats.total) * 100).toFixed(1)}% of total` : ""}
             </p>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
 
       {/* Search and Filters */}
@@ -226,7 +226,7 @@ export default function UsersPage() {
                 <SelectContent>
                   <SelectItem value="all">All Roles</SelectItem>
                   <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="premium">Premium</SelectItem>
+                  {/* <SelectItem value="premium">Premium</SelectItem> */}
                   <SelectItem value="moderator">Moderator</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
