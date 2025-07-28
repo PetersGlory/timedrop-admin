@@ -180,6 +180,9 @@ export default function MarketsPage() {
     }
   };
 
+  // Handler to close the details dialog
+  const handleCloseDetails = () => setSelectedMarket(null);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -268,6 +271,91 @@ export default function MarketsPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Market Details Dialog */}
+      <Dialog open={!!selectedMarket} onOpenChange={open => { if (!open) handleCloseDetails(); }}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Market Details</DialogTitle>
+            <DialogDescription>
+              View detailed information about this market.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedMarket && (
+            <div className="space-y-4">
+              <div>
+                <Label className="font-semibold">Question</Label>
+                <div className="mt-1">{selectedMarket.question || selectedMarket.title || selectedMarket.name}</div>
+              </div>
+              <div>
+                <Label className="font-semibold">Category</Label>
+                <div className="mt-1">{selectedMarket.category}</div>
+              </div>
+              <div>
+                <Label className="font-semibold">Status</Label>
+                <div className="mt-1">
+                  <Badge
+                    variant={
+                      selectedMarket.status === "Open"
+                        ? "default"
+                        : selectedMarket.status === "closed"
+                        ? "destructive"
+                        : "secondary"
+                    }
+                  >
+                    {selectedMarket.status}
+                  </Badge>
+                </div>
+              </div>
+              <div>
+                <Label className="font-semibold">Start Date</Label>
+                <div className="mt-1">
+                  {selectedMarket.startDate
+                    ? new Date(selectedMarket.startDate).toLocaleString()
+                    : ""}
+                </div>
+              </div>
+              <div>
+                <Label className="font-semibold">End Date</Label>
+                <div className="mt-1">
+                  {selectedMarket.endDate
+                    ? new Date(selectedMarket.endDate).toLocaleString()
+                    : ""}
+                </div>
+              </div>
+              {selectedMarket.image && selectedMarket.image.url && (
+                <div>
+                  <Label className="font-semibold">Image</Label>
+                  <div className="mt-2 flex flex-col gap-2">
+                    <img
+                      src={selectedMarket.image.url}
+                      alt={selectedMarket.image.hint || "Market image"}
+                      className="rounded border max-h-48 object-contain"
+                    />
+                    {selectedMarket.image.hint && (
+                      <span className="text-sm text-muted-foreground">{selectedMarket.image.hint}</span>
+                    )}
+                  </div>
+                </div>
+              )}
+              <div>
+                <Label className="font-semibold">Created At</Label>
+                <div className="mt-1">
+                  {selectedMarket.createdAt
+                    ? new Date(selectedMarket.createdAt).toLocaleString()
+                    : ""}
+                </div>
+              </div>
+              {/* You can add more fields here as needed */}
+              <div className="flex justify-end">
+                <Button variant="outline" onClick={handleCloseDetails}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Search and Filters */}
       <Card>
