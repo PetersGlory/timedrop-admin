@@ -132,8 +132,8 @@ export default function MarketsPage() {
           const formData = new FormData();
           formData.append("file", image);
           // Replace with your Cloudinary upload preset and cloud name
-          formData.append("upload_preset", "YOUR_UPLOAD_PRESET");
-          const cloudName = "YOUR_CLOUD_NAME";
+          formData.append("upload_preset", "timedrop");
+          const cloudName = "dzoo20xzq";
           const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
 
           const res = await fetch(uploadUrl, {
