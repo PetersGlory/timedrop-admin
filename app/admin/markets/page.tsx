@@ -28,7 +28,6 @@ import {
   deleteMarket,
 } from "@/lib/api";
 
-
 const orderedCategories = [
   "News",
   "Climate",
@@ -44,62 +43,17 @@ const orderedCategories = [
   "Misc",
 ]
 
-const markets = [
-  {
-    id: "1",
-    title: "Tesla Q4 2024 Earnings Beat Expectations",
-    creator: "john.doe@email.com",
-    category: "Stocks",
-    status: "pending",
-    volume: "$12,450",
-    participants: 234,
-    endDate: "2024-01-31",
-    created: "2024-01-15",
-  },
-  {
-    id: "2",
-    title: "Bitcoin Price Above $50k by March 2024",
-    creator: "crypto.trader@email.com",
-    category: "Crypto",
-    status: "approved",
-    volume: "$45,230",
-    participants: 1,
-    endDate: "2024-03-31",
-    created: "2024-01-10",
-  },
-  {
-    id: "3",
-    title: "Apple to Announce New VR Headset",
-    creator: "tech.enthusiast@email.com",
-    category: "Technology",
-    status: "rejected",
-    volume: "$8,900",
-    participants: 156,
-    endDate: "2024-06-30",
-    created: "2024-01-12",
-  },
-  {
-    id: "4",
-    title: "US Presidential Election 2024 Winner",
-    creator: "political.analyst@email.com",
-    category: "Politics",
-    status: "approved",
-    volume: "$234,567",
-    participants: 2,
-    endDate: "2024-11-05",
-    created: "2024-01-01",
-  },
-]
+// Remove unused mock markets
 
 export default function MarketsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedMarket, setSelectedMarket] = useState<any>(null);
   const [marketCreate, setMarketCreate] = useState({
-    title: "",
-    description: "",
+    question: "",
     category: "",
     endDate: "",
     image: null as File | null,
+    imageHint: "",
   });
   const [marketsData, setMarketsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -122,7 +76,7 @@ export default function MarketsPage() {
 
   const filteredMarkets = marketsData.filter(
     (market: any) =>
-      (market.title || market.name || "")
+      (market.question || market.title || market.name || "")
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
       (market.category || "")
@@ -132,10 +86,10 @@ export default function MarketsPage() {
 
   const handleApprove = async (marketId: string) => {
     try {
-      await updateMarket(marketId, { status: "approved" });
+      await updateMarket(marketId, { status: "Open" });
       setMarketsData((prev) =>
         prev.map((m) =>
-          m.id === marketId ? { ...m, status: "approved" } : m
+          m.id === marketId ? { ...m, status: "Open" } : m
         )
       );
     } catch (e) {
@@ -145,10 +99,10 @@ export default function MarketsPage() {
 
   const handleReject = async (marketId: string) => {
     try {
-      await updateMarket(marketId, { status: "rejected" });
+      await updateMarket(marketId, { status: "closed" });
       setMarketsData((prev) =>
         prev.map((m) =>
-          m.id === marketId ? { ...m, status: "rejected" } : m
+          m.id === marketId ? { ...m, status: "closed" } : m
         )
       );
     } catch (e) {
@@ -157,40 +111,72 @@ export default function MarketsPage() {
   };
 
   const handleCreateMarket = async () => {
+    setLoading(true)
     try {
-      const { image, ...rest } = marketCreate;
+      const { image, imageHint, question, category, endDate } = marketCreate;
       let newMarket;
+      // Compose the payload according to backend model
+      // Required: question, category, startDate, endDate
+      // Optional: image (JSON: {url, hint})
+      // status: default 'Open'
+      // history: leave empty
+
+      // Use current date as startDate
+      const startDate = new Date().toISOString();
+      const endDateISO = endDate ? new Date(endDate).toISOString() : "";
+
+      let imagePayload = null;
       if (image) {
-        // If image upload is needed, use FormData
-        const formData = new FormData();
-        Object.entries(rest).forEach(([key, value]) => {
-          formData.append(key, value as string);
-        });
-        formData.append("image", image);
-        // You'd need a custom endpoint for multipart/form-data
-        // For now, fallback to JSON if not supported
-        // newMarket = await createMarket(formData);
-      } else {
-        // Fix type: map rest fields to correct Market property names
-        newMarket = await createMarket({
-          name: rest.title,
-          // description: rest.description,
-          // category: rest.category,
-          // closeTime: rest.endDate,
-        });
+        // Upload image to Cloudinary if provided
+        if (image) {
+          const formData = new FormData();
+          formData.append("file", image);
+          // Replace with your Cloudinary upload preset and cloud name
+          formData.append("upload_preset", "YOUR_UPLOAD_PRESET");
+          const cloudName = "YOUR_CLOUD_NAME";
+          const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+
+          const res = await fetch(uploadUrl, {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!res.ok) {
+            throw new Error("Image upload failed");
+          }
+
+          const data = await res.json();
+          imagePayload = { url: data.secure_url, hint: imageHint };
+        }
       }
+
+      const payload: any = {
+        question,
+        category,
+        startDate,
+        endDate: endDateISO,
+        status: "Open",
+      };
+      if (imagePayload) {
+        payload.image = imagePayload;
+      }
+
+      newMarket = await createMarket(payload);
+
       if (newMarket) {
         setMarketsData((prev) => [newMarket, ...prev]);
         setMarketCreate({
-          title: "",
-          description: "",
+          question: "",
           category: "",
           endDate: "",
           image: null,
+          imageHint: "",
         });
       }
     } catch (e) {
-      // Optionally handle error
+      console.error("Failed to create market:", e);
+    }finally{
+      setLoading(false)
     }
   };
 
@@ -215,23 +201,27 @@ export default function MarketsPage() {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="title">Market Title</Label>
-                <Input id="title" placeholder="Enter market title..." />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea id="description" placeholder="Describe the market..." />
+                <Label htmlFor="question">Market Question</Label>
+                <Input
+                  id="question"
+                  placeholder="Enter market question..."
+                  value={marketCreate.question}
+                  onChange={e => setMarketCreate(mc => ({ ...mc, question: e.target.value }))}
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="category">Category</Label>
-                  <Select>
+                  <Select
+                    value={marketCreate.category}
+                    onValueChange={val => setMarketCreate(mc => ({ ...mc, category: val }))}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
                       {orderedCategories.map((category) => (
-                        <SelectItem key={category} value={category.toLowerCase()}>
+                        <SelectItem key={category} value={category}>
                           {category}
                         </SelectItem>
                       ))}
@@ -240,19 +230,40 @@ export default function MarketsPage() {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="endDate">End Date</Label>
-                  <Input id="endDate" type="date" />
+                  <Input
+                    id="endDate"
+                    type="date"
+                    value={marketCreate.endDate}
+                    onChange={e => setMarketCreate(mc => ({ ...mc, endDate: e.target.value }))}
+                  />
                 </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="image">Market Image</Label>
                 <div className="space-y-2">
-                  <Input id="image" type="file" accept="image/*" />
+                  <Input
+                    id="image"
+                    type="file"
+                    accept="image/*"
+                    onChange={e => {
+                      const file = e.target.files?.[0] || null;
+                      setMarketCreate(mc => ({ ...mc, image: file }));
+                    }}
+                  />
+                  <Input
+                    id="imageHint"
+                    placeholder="Image hint (optional)"
+                    value={marketCreate.imageHint}
+                    onChange={e => setMarketCreate(mc => ({ ...mc, imageHint: e.target.value }))}
+                  />
                   <p className="text-sm text-muted-foreground">
                     Upload an image for the market (JPG, PNG, GIF - Max 5MB)
                   </p>
                 </div>
               </div>
-              <Button onClick={handleCreateMarket}>Create Market</Button>
+              <Button disabled={loading} onClick={handleCreateMarket}>
+                {loading ? "Creating..." : "Create Market"}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -278,111 +289,145 @@ export default function MarketsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Market</TableHead>
-                <TableHead>Creator</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Volume</TableHead>
-                <TableHead>Participants</TableHead>
+                <TableHead>Start Date</TableHead>
                 <TableHead>End Date</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredMarkets.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8}>
-                    <div className="flex flex-col items-center justify-center py-12">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-12 w-12 mb-4 text-muted-foreground"
-                        fill="none"
-                        viewBox="0 0 24 24"
+              {loading ? (
+              <TableRow>
+                <TableCell colSpan={6}>
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <svg
+                      className="animate-spin h-8 w-8 text-muted-foreground mb-4"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
                         stroke="currentColor"
-                        strokeWidth={1.5}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M12 8v4m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"
-                        />
-                      </svg>
-                      <span className="text-lg font-medium text-muted-foreground">No markets found</span>
-                      <span className="text-sm text-muted-foreground mt-1">Try adjusting your search or filters.</span>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredMarkets.map((market) => (
-                  <TableRow key={market.id}>
-                    <TableCell>
-                      <div className="max-w-[300px]">
-                        <div className="font-medium truncate">{market.title}</div>
-                        <div className="text-sm text-muted-foreground">Created {market.created}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm">{market.creator}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{market.category}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          market.status === "approved"
-                            ? "default"
-                            : market.status === "pending"
-                              ? "secondary"
-                              : "destructive"
-                        }
-                      >
-                        {market.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-medium">{market.volume}</TableCell>
-                    <TableCell>{market.participants.toLocaleString()}</TableCell>
-                    <TableCell>{market.endDate}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        {market.status === "pending" && (
-                          <>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => handleApprove(market.id)}
-                              className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
-                            >
-                              <Check className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => handleReject(market.id)}
-                              className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setSelectedMarket(market)}>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit Market
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                      ></path>
+                    </svg>
+                    <span className="text-lg font-medium text-muted-foreground">Loading markets...</span>
+                  </div>
+                </TableCell>
+              </TableRow>
+              ) :(
+                <>
+                  {filteredMarkets.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6}>
+                        <div className="flex flex-col items-center justify-center py-12">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-12 w-12 mb-4 text-muted-foreground"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={1.5}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M12 8v4m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"
+                            />
+                          </svg>
+                          <span className="text-lg font-medium text-muted-foreground">No markets found</span>
+                          <span className="text-sm text-muted-foreground mt-1">Try adjusting your search or filters.</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredMarkets.map((market) => (
+                      <TableRow key={market.id}>
+                        <TableCell>
+                          <div className="max-w-[300px]">
+                            <div className="font-medium truncate">{market.question || market.title || market.name}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {market.createdAt ? `Created ${new Date(market.createdAt).toLocaleDateString()}` : ""}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{market.category}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              market.status === "Open"
+                                ? "default"
+                                : market.status === "closed"
+                                  ? "destructive"
+                                  : "secondary"
+                            }
+                          >
+                            {market.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {market.startDate ? new Date(market.startDate).toLocaleDateString() : ""}
+                        </TableCell>
+                        <TableCell>
+                          {market.endDate ? new Date(market.endDate).toLocaleDateString() : ""}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            {market.status === "pending" || market.status === "Open" ? (
+                              <>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => handleApprove(market.id)}
+                                  className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => handleReject(market.id)}
+                                  className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </>
+                            ) : null}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => setSelectedMarket(market)}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View Details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit Market
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </>
               )}
             </TableBody>
           </Table>
