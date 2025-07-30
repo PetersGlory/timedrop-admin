@@ -203,3 +203,15 @@ export const deleteBookmark = (id: string) =>
   apiFetch<void>(`/admin/bookmarks/${id}`, {
     method: 'DELETE',
   });
+
+export const getAllWithdrawals = () =>
+  apiFetch<any>('/admin/withdrawals');
+
+export const getWithdrawalById = (id: string) =>
+  apiFetch<any>(`/admin/withdrawals/${id}`);
+
+export const updateWithdrawal = (id: string, data: Partial<any>) =>
+  apiFetch<any>(`/admin/withdrawals/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });

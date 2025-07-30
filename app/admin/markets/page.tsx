@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, Plus, MoreHorizontal, Check, X, Edit, Eye } from "lucide-react"
+import { Search, Plus, MoreHorizontal, Check, X, Edit, Eye, Delete, DoorClosed, Archive } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
@@ -27,6 +27,7 @@ import {
   updateMarket,
   deleteMarket,
 } from "@/lib/api";
+import { toast } from "sonner"
 
 const orderedCategories = [
   "News",
@@ -85,6 +86,7 @@ export default function MarketsPage() {
   );
 
   const handleApprove = async (marketId: string) => {
+    setLoading(true)
     try {
       await updateMarket(marketId, { status: "Open" });
       setMarketsData((prev) =>
@@ -92,12 +94,17 @@ export default function MarketsPage() {
           m.id === marketId ? { ...m, status: "Open" } : m
         )
       );
+      toast.success("Market Opened successfully");
     } catch (e) {
-      // Optionally handle error
+      console.error("Failed to approve market:", e);
+      toast.error("Failed to approve market");
+    }finally{
+      setLoading(false)
     }
   };
 
   const handleReject = async (marketId: string) => {
+    setLoading(true)
     try {
       await updateMarket(marketId, { status: "closed" });
       setMarketsData((prev) =>
@@ -105,10 +112,32 @@ export default function MarketsPage() {
           m.id === marketId ? { ...m, status: "closed" } : m
         )
       );
+      toast.success("Market closed successfully");
     } catch (e) {
-      // Optionally handle error
+      console.error("Failed to reject market:", e);
+      toast.error("Failed to close market");
+    }finally{
+      setLoading(false)
     }
   };
+
+const handleArchive = async (marketId: string) => {
+  setLoading(true);
+  try {
+    await updateMarket(marketId, { status: "archieve" });
+    setMarketsData((prev) =>
+      prev.map((m) =>
+        m.id === marketId ? { ...m, status: "archieve" } : m
+      )
+    );
+    toast.success("Market archived successfully");
+  } catch (e) {
+    console.error("Failed to archive market:", e);
+    toast.error("Failed to archive market");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleCreateMarket = async () => {
     setLoading(true)
@@ -235,7 +264,7 @@ export default function MarketsPage() {
                   <Label htmlFor="endDate">End Date</Label>
                   <Input
                     id="endDate"
-                    type="date"
+                    type="datetime-local"
                     value={marketCreate.endDate}
                     onChange={e => setMarketCreate(mc => ({ ...mc, endDate: e.target.value }))}
                   />
@@ -274,22 +303,34 @@ export default function MarketsPage() {
 
       {/* Market Details Dialog */}
       <Dialog open={!!selectedMarket} onOpenChange={open => { if (!open) handleCloseDetails(); }}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[500px] w-full max-w-[95vw] p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6">
             <DialogTitle>Market Details</DialogTitle>
             <DialogDescription>
               View detailed information about this market.
             </DialogDescription>
           </DialogHeader>
           {selectedMarket && (
-            <div className="space-y-4">
+            <div
+              className="
+                space-y-4
+                px-6
+                pb-6
+                pt-2
+                max-h-[70vh]
+                overflow-y-auto
+                sm:max-h-[60vh]
+                w-full
+                min-w-0
+              "
+            >
               <div>
                 <Label className="font-semibold">Question</Label>
-                <div className="mt-1">{selectedMarket.question || selectedMarket.title || selectedMarket.name}</div>
+                <div className="mt-1 break-words">{selectedMarket.question || selectedMarket.title || selectedMarket.name}</div>
               </div>
               <div>
                 <Label className="font-semibold">Category</Label>
-                <div className="mt-1">{selectedMarket.category}</div>
+                <div className="mt-1 break-words">{selectedMarket.category}</div>
               </div>
               <div>
                 <Label className="font-semibold">Status</Label>
@@ -326,14 +367,14 @@ export default function MarketsPage() {
               {selectedMarket.image && selectedMarket.image.url && (
                 <div>
                   <Label className="font-semibold">Image</Label>
-                  <div className="mt-2 flex flex-col gap-2">
+                  <div className="mt-2 flex flex-col gap-2 items-center">
                     <img
                       src={selectedMarket.image.url}
                       alt={selectedMarket.image.hint || "Market image"}
-                      className="rounded border max-h-48 object-contain"
+                      className="rounded border max-h-48 object-contain w-full max-w-xs"
                     />
                     {selectedMarket.image.hint && (
-                      <span className="text-sm text-muted-foreground">{selectedMarket.image.hint}</span>
+                      <span className="text-sm text-muted-foreground text-center">{selectedMarket.image.hint}</span>
                     )}
                   </div>
                 </div>
@@ -492,7 +533,18 @@ export default function MarketsPage() {
                                   <X className="h-4 w-4" />
                                 </Button>
                               </>
-                            ) : null}
+                            ) : (
+                              <>
+                              <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => handleApprove(market.id)}
+                                  className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -504,9 +556,13 @@ export default function MarketsPage() {
                                   <Eye className="mr-2 h-4 w-4" />
                                   View Details
                                 </DropdownMenuItem>
+                                <DropdownMenuItem onClick={()=> handleArchive(market.id)}>
+                                  <Archive className="mr-2 h-4 w-4" />
+                                  Archieve Market
+                                </DropdownMenuItem>
                                 <DropdownMenuItem>
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  Edit Market
+                                  <Delete className="mr-2 h-4 w-4" />
+                                  Delete Market
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
