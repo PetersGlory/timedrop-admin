@@ -215,3 +215,12 @@ export const updateWithdrawal = (id: string, data: Partial<any>) =>
     method: 'PATCH',
     body: JSON.stringify(data),
   });
+
+export const resolveMarket = (id: string, resolutionData: { outcome: string }) =>
+  apiFetch<any>(`/markets/resolve`, {
+    method: 'POST',
+    body: JSON.stringify({
+      marketId: id,
+      result: resolutionData.outcome,
+    }),
+  });

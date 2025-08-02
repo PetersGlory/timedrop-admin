@@ -22,7 +22,7 @@ import { AuthProvider, useAuth } from "@/contexts/auth-context"
 
 const navigation = [
   { name: "Dashboard", href: "/admin/dashboard", icon: BarChart3 },
-  { name: "Markets", href: "/admin/markets", icon: TrendingUp, badge: "3" },
+  { name: "Markets", href: "/admin/markets", icon: TrendingUp }, //, badge: "3"
   { name: "Portfolios", href: "/admin/wallets", icon: Wallet },
   { name: "Users", href: "/admin/users", icon: Users },
   { name: "Withdrawals", href: "/admin/withdrawals", icon: CreditCardIcon },
@@ -57,11 +57,11 @@ function Sidebar({ className }: { className?: string }) {
             >
               <item.icon className="h-4 w-4" />
               {item.name}
-              {item.badge && (
+              {/* {item?.badge && (
                 <Badge variant="secondary" className="ml-auto">
-                  {item.badge}
+                  {item?.badge}
                 </Badge>
-              )}
+              )} */}
             </Link>
           )
         })}

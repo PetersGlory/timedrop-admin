@@ -26,6 +26,7 @@ import {
   createMarket,
   updateMarket,
   deleteMarket,
+  resolveMarket,
 } from "@/lib/api";
 import { toast } from "sonner"
 
@@ -60,18 +61,18 @@ export default function MarketsPage() {
   const [loading, setLoading] = useState(false);
 
   // Fetch markets from API
+  const fetchMarkets = async () => {
+    setLoading(true);
+    try {
+      const res = await getAllMarkets();
+      setMarketsData(res.markets || []);
+    } catch (e) {
+      // Optionally handle error
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => {
-    const fetchMarkets = async () => {
-      setLoading(true);
-      try {
-        const res = await getAllMarkets();
-        setMarketsData(res.markets || []);
-      } catch (e) {
-        // Optionally handle error
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchMarkets();
   }, []);
 
@@ -206,6 +207,18 @@ const handleArchive = async (marketId: string) => {
       console.error("Failed to create market:", e);
     }finally{
       setLoading(false)
+      fetchMarkets();
+    }
+  };
+
+  const handleResolveMarket = async (marketId: string, outcome: string) => {
+    setLoading(true);
+    try {
+      await resolveMarket(marketId, { outcome });
+    } catch (e) {
+      console.error("Failed to resolve market:", e);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -422,7 +435,7 @@ const handleArchive = async (marketId: string) => {
                 <TableHead>Status</TableHead>
                 <TableHead>Start Date</TableHead>
                 <TableHead>End Date</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
+                <TableHead className="w-auto">Resolve / Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -519,7 +532,7 @@ const handleArchive = async (marketId: string) => {
                                 <Button
                                   size="icon"
                                   variant="ghost"
-                                  onClick={() => handleApprove(market.id)}
+                                  onClick={() => handleResolveMarket(market.id, "yes")}
                                   className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
                                 >
                                   <Check className="h-4 w-4" />
@@ -527,7 +540,7 @@ const handleArchive = async (marketId: string) => {
                                 <Button
                                   size="icon"
                                   variant="ghost"
-                                  onClick={() => handleReject(market.id)}
+                                  onClick={() => handleResolveMarket(market.id, "no")}
                                   className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
                                 >
                                   <X className="h-4 w-4" />
@@ -560,6 +573,18 @@ const handleArchive = async (marketId: string) => {
                                   <Archive className="mr-2 h-4 w-4" />
                                   Archieve Market
                                 </DropdownMenuItem>
+                                {market.status === "Open" && (
+                                  <DropdownMenuItem onClick={() => handleReject(market.id)}>
+                                    <DoorClosed className="mr-2 h-4 w-4" />
+                                    Close Market
+                                  </DropdownMenuItem>
+                                )}
+                                {market.status === "archieve" && (
+                                  <DropdownMenuItem onClick={() => handleApprove(market.id)}>
+                                    <Archive className="mr-2 h-4 w-4" />
+                                    Unarchieve Market
+                                  </DropdownMenuItem>
+                                )}
                                 <DropdownMenuItem>
                                   <Delete className="mr-2 h-4 w-4" />
                                   Delete Market
