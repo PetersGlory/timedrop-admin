@@ -101,6 +101,7 @@ export default function MarketsPage() {
       toast.error("Failed to approve market");
     }finally{
       setLoading(false)
+      fetchMarkets();
     }
   };
 
@@ -119,6 +120,7 @@ export default function MarketsPage() {
       toast.error("Failed to close market");
     }finally{
       setLoading(false)
+      fetchMarkets();
     }
   };
 
@@ -137,6 +139,7 @@ const handleArchive = async (marketId: string) => {
     toast.error("Failed to archive market");
   } finally {
     setLoading(false);
+    fetchMarkets();
   }
 };
 
@@ -219,6 +222,7 @@ const handleArchive = async (marketId: string) => {
       console.error("Failed to resolve market:", e);
     } finally {
       setLoading(false);
+      fetchMarkets();
     }
   };
 
