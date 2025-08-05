@@ -76,15 +76,26 @@ export default function MarketsPage() {
     fetchMarkets();
   }, []);
 
-  const filteredMarkets = marketsData.filter(
-    (market: any) =>
+  // Add status filter state
+  const [statusFilter, setStatusFilter] = useState<"all" | "Open" | "closed" | "archieve">("all");
+
+  const filteredMarkets = marketsData.filter((market: any) => {
+    const matchesSearch =
       (market.question || market.title || market.name || "")
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
       (market.category || "")
         .toLowerCase()
-        .includes(searchTerm.toLowerCase())
-  );
+        .includes(searchTerm.toLowerCase()) ||
+      (market.status || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+
+    const matchesStatus =
+      statusFilter === "all" ? true : (market.status || "").toLowerCase() === statusFilter.toLowerCase();
+
+    return matchesSearch && matchesStatus;
+  });
 
   const handleApprove = async (marketId: string) => {
     setLoading(true)
