@@ -552,14 +552,14 @@ const handleArchive = async (marketId: string) => {
                               </>
                             ) : (
                               <>
-                              <Button
+                              {/* <Button
                                   size="icon"
                                   variant="ghost"
                                   onClick={() => handleApprove(market.id)}
                                   className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
                                 >
                                   <Check className="h-4 w-4" />
-                                </Button>
+                                </Button> */}
                               </>
                             )}
                             <DropdownMenu>
