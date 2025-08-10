@@ -52,6 +52,13 @@ export interface Bookmark {
   // Add more fields as needed
 }
 
+// --- Analytics Types ---
+export interface Analytics {
+  totalRevenue: number;
+  totalVolume: number;
+  todaysRevenue: number;
+}
+
 // --- Generic fetch wrapper with JWT support ---
 async function apiFetch<T>(
   endpoint: string,
@@ -209,6 +216,10 @@ export const getAllWithdrawals = () =>
 
 export const getWithdrawalById = (id: string) =>
   apiFetch<any>(`/admin/withdrawals/${id}`);
+
+
+export const getAnalytics = () =>
+  apiFetch<Analytics>(`/admin/revenue-stats`);
 
 export const updateWithdrawal = (id: string, data: Partial<any>) =>
   apiFetch<any>(`/admin/withdrawals/${id}`, {

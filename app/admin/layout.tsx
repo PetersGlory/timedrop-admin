@@ -22,6 +22,7 @@ import { AuthProvider, useAuth } from "@/contexts/auth-context"
 
 const navigation = [
   { name: "Dashboard", href: "/admin/dashboard", icon: BarChart3 },
+  { name: "Analytics", href: "/admin/analysis", icon: BarChart3 },
   { name: "Markets", href: "/admin/markets", icon: TrendingUp }, //, badge: "3"
   { name: "Portfolios", href: "/admin/wallets", icon: Wallet },
   { name: "Users", href: "/admin/users", icon: Users },
