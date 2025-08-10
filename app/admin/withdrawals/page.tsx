@@ -71,12 +71,22 @@ const Withdrawals: React.FC = () => {
 
   return (
     <div className="max-w-5xl mx-auto py-8">
-      <h1 className="text-2xl font-bold mb-6">Withdrawals</h1>
+      {/* <h1 className="text-2xl font-bold mb-6">Withdrawals</h1> */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <span className="font-semibold text-lg">Withdrawal Requests</span>
-            {loading && <Loader2 className="animate-spin h-5 w-5 text-muted-foreground" />}
+            <div className="flex items-center gap-2">
+              <Button
+                size="icon"
+                variant="outline"
+                onClick={fetchWithdrawals}
+                disabled={loading}
+                title="Refresh"
+              >
+                <Loader2 className={`h-5 w-5 ${loading ? "animate-spin text-muted-foreground" : ""}`} />
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -85,9 +95,10 @@ const Withdrawals: React.FC = () => {
               <TableRow>
                 <TableHead>User</TableHead>
                 <TableHead>Amount</TableHead>
+                <TableHead>Description</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Requested At</TableHead>
-                <TableHead>Actions</TableHead>
+                {/* <TableHead>Actions</TableHead> */}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -101,7 +112,7 @@ const Withdrawals: React.FC = () => {
                 withdrawals && withdrawals.map((w) => (
                   <TableRow key={w.id}>
                     <TableCell>
-                      {w.user?.name || w.user?.email || w.userId || "Unknown"}
+                      {w.user?.firstName + " " + w.user?.lastName || w.user?.email || w.userId || "Unknown"}
                     </TableCell>
                     <TableCell>
                       {w.amount ? (
@@ -113,6 +124,9 @@ const Withdrawals: React.FC = () => {
                       )}
                     </TableCell>
                     <TableCell>
+                      {w.reason || "-"}
+                    </TableCell>
+                    <TableCell>
                       <Badge variant={statusColors[w.status] as "default" | "destructive" | "outline" | "secondary" || "secondary"}>
                         {w.status.charAt(0).toUpperCase() + w.status.slice(1)}
                       </Badge>
@@ -122,7 +136,7 @@ const Withdrawals: React.FC = () => {
                         ? new Date(w.createdAt).toLocaleString()
                         : "-"}
                     </TableCell>
-                    <TableCell>
+                    {/* <TableCell>
                       <div className="flex gap-2">
                         <Button
                           size="icon"
@@ -170,7 +184,7 @@ const Withdrawals: React.FC = () => {
                           </>
                         )}
                       </div>
-                    </TableCell>
+                    </TableCell> */}
                   </TableRow>
                 ))
               )}
