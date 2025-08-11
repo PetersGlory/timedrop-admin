@@ -32,7 +32,7 @@ const navigation = [
 
 function Sidebar({ className }: { className?: string }) {
   const pathname = usePathname()
-  const userRole = localStorage.getItem("user_role")
+  // const userRole = localStorage.getItem("user_role")
 
   return (
     <div className={`flex h-full flex-col bg-card border-r ${className}`}>
