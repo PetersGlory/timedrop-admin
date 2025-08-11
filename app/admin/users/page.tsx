@@ -6,17 +6,21 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Search, MoreHorizontal, UserCheck, UserX, Shield, Mail, Ban } from "lucide-react"
+import { Search, MoreHorizontal, UserCheck, UserX, Shield, Mail, Ban, Plus, X } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
 import {
   getAllUsers,
   deleteUser,
   updateUser,
+  createUser,
   type User,
   type UserResponse,
+  type CreateUserData,
 } from "@/lib/api"
+import { toast } from "sonner"
 
 // interface ExtendedUser extends User {
 //   avatar?: string
@@ -37,6 +41,20 @@ export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [roleFilter, setRoleFilter] = useState("all")
+  
+  // Create user form state
+  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [createFormData, setCreateFormData] = useState<CreateUserData>({
+    email: '',
+    password: '',
+    firstName: '',
+    lastName: '',
+    phone: '',
+    gender: 'male',
+    role: 'user'
+  })
+  const [createLoading, setCreateLoading] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
 
   // Stats
   const [stats, setStats] = useState({
@@ -90,6 +108,43 @@ export default function UsersPage() {
     }
   }, [])
 
+  const refreshUsers = () => {
+    getAllUsers()
+      .then((res: UserResponse) => {
+        // Map/extend users based on the provided API response structure
+        const usersWithDefaults: any[] = (res.users || []).map((u:any) => {
+          const name = [u.firstName, u.lastName].filter(Boolean).join(" ")
+          // For demo, status is "active" if isVerified, else "pending"
+          // You can adjust this logic as needed
+          let status: string = u.isVerified ? "active" : "pending"
+          // Optionally, you could add logic for "suspended" or "banned" if your backend supports it
+          return {
+            ...u,
+            name,
+            avatar: "/placeholder-user.jpg",
+            balance: "-",
+            marketsCreated: 0,
+            totalVolume: "-",
+            joinDate: u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "-",
+            lastActive: u.updatedAt ? new Date(u.updatedAt).toLocaleDateString() : "-",
+            status,
+          }
+        })
+        setUsers(usersWithDefaults)
+
+        // Calculate stats
+        let total = usersWithDefaults.length
+        let active = usersWithDefaults.filter((u) => u.status === "active").length
+        let suspended = usersWithDefaults.filter((u) => u.status === "suspended").length
+        let premium = usersWithDefaults.filter((u) => u.role === "premium").length
+        setStats({ total, active, suspended, premium })
+      })
+      .catch((err) => {
+        setError("Failed to load users")
+      })
+      .finally(() => setLoading(false))
+  }
+
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
       (user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -133,11 +188,68 @@ export default function UsersPage() {
     }
   }
 
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setCreateLoading(true)
+    setCreateError(null)
+
+    try {
+      const newUser = await createUser(createFormData)
+      
+      // Add the new user to the list with default values
+      toast.success("User created successfully");
+
+      await refreshUsers();
+      
+      // Reset form and close modal
+      setCreateFormData({
+        email: '',
+        password: '',
+        firstName: '',
+        lastName: '',
+        phone: '',
+        gender: 'male',
+        role: 'user'
+      })
+      setShowCreateForm(false)
+      
+      // Update stats
+      setStats(prev => ({
+        ...prev,
+        total: prev.total + 1,
+        active: prev.active + 1
+      }))
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : 'Failed to create user')
+    } finally {
+      setCreateLoading(false)
+    }
+  }
+
+  const resetCreateForm = () => {
+    setCreateFormData({
+      email: '',
+      password: '',
+      firstName: '',
+      lastName: '',
+      phone: '',
+      gender: 'male',
+      role: 'user'
+    })
+    setCreateError(null)
+  }
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Users</h1>
-        <p className="text-muted-foreground">Manage user accounts, roles, and permissions.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Users</h1>
+          <p className="text-muted-foreground">Manage user accounts, roles, and permissions.</p>
+        </div>
+        <Button onClick={() => setShowCreateForm(true)} className="flex items-center gap-2">
+          <Plus className="h-4 w-4" />
+          Add User
+        </Button>
       </div>
 
       {/* Stats Cards */}
@@ -348,6 +460,163 @@ export default function UsersPage() {
                               </div>
                             </div>
                           </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Create User Modal */}
+                    {showCreateForm && (
+                      <div
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+                        onClick={() => setShowCreateForm(false)}
+                      >
+                        <div
+                          className="bg-card rounded-lg shadow-lg p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto relative"
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <button
+                            className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
+                            onClick={() => setShowCreateForm(false)}
+                            aria-label="Close"
+                          >
+                            <X className="h-5 w-5" />
+                          </button>
+                          
+                          <div className="mb-6">
+                            <h2 className="text-2xl font-bold">Create New User</h2>
+                            <p className="text-muted-foreground">Fill in the details to create a new user account.</p>
+                          </div>
+
+                          <form onSubmit={handleCreateUser} className="space-y-4">
+                            {createError && (
+                              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md text-destructive text-sm">
+                                {createError}
+                              </div>
+                            )}
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="firstName">First Name *</Label>
+                                <Input
+                                  id="firstName"
+                                  value={createFormData.firstName}
+                                  onChange={(e) => setCreateFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                                  required
+                                  placeholder="Enter first name"
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <Label htmlFor="lastName">Last Name *</Label>
+                                <Input
+                                  id="lastName"
+                                  value={createFormData.lastName}
+                                  onChange={(e) => setCreateFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                                  required
+                                  placeholder="Enter last name"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="email">Email *</Label>
+                                <Input
+                                  id="email"
+                                  type="email"
+                                  value={createFormData.email}
+                                  onChange={(e) => setCreateFormData(prev => ({ ...prev, email: e.target.value }))}
+                                  required
+                                  placeholder="Enter email address"
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <Label htmlFor="password">Password *</Label>
+                                <Input
+                                  id="password"
+                                  type="password"
+                                  value={createFormData.password}
+                                  onChange={(e) => setCreateFormData(prev => ({ ...prev, password: e.target.value }))}
+                                  required
+                                  placeholder="Enter password"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="phone">Phone Number</Label>
+                                <Input
+                                  id="phone"
+                                  type="tel"
+                                  value={createFormData.phone}
+                                  onChange={(e) => setCreateFormData(prev => ({ ...prev, phone: e.target.value }))}
+                                  placeholder="Enter phone number"
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <Label htmlFor="gender">Gender</Label>
+                                <Select 
+                                  value={createFormData.gender} 
+                                  onValueChange={(value: 'male' | 'female') => 
+                                    setCreateFormData(prev => ({ ...prev, gender: value }))
+                                  }
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select gender" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="male">Male</SelectItem>
+                                    <SelectItem value="female">Female</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="role">Role *</Label>
+                              <Select 
+                                value={createFormData.role} 
+                                onValueChange={(value: 'user' | 'admin' | 'super_admin' | 'manager') => 
+                                  setCreateFormData(prev => ({ ...prev, role: value }))
+                                }
+                                required
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select role" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="user">User</SelectItem>
+                                  <SelectItem value="manager">Manager</SelectItem>
+                                  <SelectItem value="admin">Admin</SelectItem>
+                                  <SelectItem value="super_admin">Super Admin</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="flex gap-3 pt-4">
+                              <Button 
+                                type="submit" 
+                                disabled={createLoading}
+                                className="flex-1"
+                              >
+                                {createLoading ? "Creating..." : "Create User"}
+                              </Button>
+                              <Button 
+                                type="button" 
+                                variant="outline" 
+                                onClick={() => {
+                                  resetCreateForm()
+                                  setShowCreateForm(false)
+                                }}
+                                className="flex-1"
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </form>
                         </div>
                       </div>
                     )}

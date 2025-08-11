@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { TrendingUp, Users, Wallet, Activity, ArrowUpRight, ArrowDownRight, MoreHorizontal } from "lucide-react"
+import { TrendingUp, Users, Wallet, Activity, ArrowUpRight, ArrowDownRight, MoreHorizontal, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useEffect, useState } from "react"
@@ -18,6 +18,10 @@ export default function DashboardPage() {
   ])
   const [loading, setLoading] = useState(true)
   const [recentActivity, setRecentActivity] = useState<any>()
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(5)
 
   useEffect(() => {
     async function fetchStats() {
@@ -61,6 +65,7 @@ export default function DashboardPage() {
           },
         ])
         setRecentActivity(recentActivities.activities)
+        setCurrentPage(1) // Reset to first page when new data loads
       } catch (e) {
         // Optionally handle error
       } finally {
@@ -69,6 +74,21 @@ export default function DashboardPage() {
     }
     fetchStats()
   }, [])
+
+  // Pagination logic
+  const totalPages = recentActivity ? Math.ceil(recentActivity.length / itemsPerPage) : 0
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentActivities = recentActivity ? recentActivity.slice(startIndex, endIndex) : []
+
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)))
+  }
+
+  const goToFirstPage = () => goToPage(1)
+  const goToLastPage = () => goToPage(totalPages)
+  const goToNextPage = () => goToPage(currentPage + 1)
+  const goToPreviousPage = () => goToPage(currentPage - 1)
 
   // Keep recentActivity static for now, unless an endpoint is available
   // const recentActivity = [
@@ -154,7 +174,7 @@ export default function DashboardPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {recentActivity && recentActivity.map((activity:any) => (
+              {currentActivities.map((activity:any) => (
                 <TableRow key={activity.id}>
                   <TableCell className="font-medium">{activity.type}</TableCell>
                   <TableCell>
@@ -196,6 +216,78 @@ export default function DashboardPage() {
               ))}
             </TableBody>
           </Table>
+          
+          {/* Pagination Controls */}
+          {recentActivity && recentActivity.length > itemsPerPage && (
+            <div className="flex items-center justify-between px-6 py-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                Showing {startIndex + 1} to {Math.min(endIndex, recentActivity.length)} of {recentActivity.length} activities
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToFirstPage}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronsLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToPreviousPage}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum
+                    if (totalPages <= 5) {
+                      pageNum = i + 1
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i
+                    } else {
+                      pageNum = currentPage - 2 + i
+                    }
+                    
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => goToPage(pageNum)}
+                        className="w-8 h-8 p-0"
+                      >
+                        {pageNum}
+                      </Button>
+                    )
+                  })}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToNextPage}
+                  disabled={currentPage === totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToLastPage}
+                  disabled={currentPage === totalPages}
+                >
+                  <ChevronsLeft className="h-4 w-4 rotate-180" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -48,8 +48,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const res = await apiLogin(email, password)
-      if (res && res.token && res.user) {
+      if (res && res.token && res.user && res.user.role !== "user") {
         localStorage.setItem("jwt_token", res.token)
+        localStorage.setItem("user_role", res.user.role)
         setUser(res.user)
         return true
       }

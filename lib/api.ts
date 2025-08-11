@@ -3,11 +3,25 @@ const BASE_URL = 'https://backendapi.timedrop.live/api'; //'https://timedrop-bac
 // --- Types (adjust as needed based on backend models) ---
 export interface User {
   id: string;
-  name: string;
   email: string;
-  role: string;
+  password?: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  gender?: 'male' | 'female';
+  role: 'user' | 'admin' | 'super_admin' | 'manager';
   status: string;
   // Add more fields as needed
+}
+
+export interface CreateUserData {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  gender?: 'male' | 'female';
+  role: 'user' | 'admin' | 'super_admin' | 'manager';
 }
 
 export interface UserResponse {
@@ -89,7 +103,7 @@ export const getProfile = () => apiFetch<User>('/auth/me');
 
 // --- User Endpoints ---
 export const getAllUsers = () => apiFetch<UserResponse>('/admin/users');
-export const createUser = (data: Partial<User>) =>
+export const createUser = (data: CreateUserData) =>
   apiFetch<User>('/admin/users', {
     method: 'POST',
     body: JSON.stringify(data),

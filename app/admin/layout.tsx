@@ -32,6 +32,7 @@ const navigation = [
 
 function Sidebar({ className }: { className?: string }) {
   const pathname = usePathname()
+  const userRole = localStorage.getItem("user_role")
 
   return (
     <div className={`flex h-full flex-col bg-card border-r ${className}`}>
@@ -44,28 +45,43 @@ function Sidebar({ className }: { className?: string }) {
         </Link>
       </div>
       <nav className="flex-1 space-y-1 p-4">
-        {navigation.map((item) => {
-          const isActive = pathname === item.href
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              }`}
-            >
-              <item.icon className="h-4 w-4" />
-              {item.name}
-              {/* {item?.badge && (
-                <Badge variant="secondary" className="ml-auto">
-                  {item?.badge}
-                </Badge>
-              )} */}
-            </Link>
-          )
-        })}
+        {navigation
+          .filter((item) => {
+            // Only show all items for super_admin, else only show Dashboard, Markets, Settings
+            if (typeof window !== "undefined") {
+              const userRole = localStorage.getItem("user_role");
+              if (userRole !== "super_admin") {
+                return (
+                  item.name === "Dashboard" ||
+                  item.name === "Markets" ||
+                  item.name === "Settings"
+                );
+              }
+            }
+            return true;
+          })
+          .map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                }`}
+              >
+                <item.icon className="h-4 w-4" />
+                {item.name}
+                {/* {item?.badge && (
+                  <Badge variant="secondary" className="ml-auto">
+                    {item?.badge}
+                  </Badge>
+                )} */}
+              </Link>
+            );
+          })}
       </nav>
     </div>
   )
