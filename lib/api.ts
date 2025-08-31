@@ -32,6 +32,7 @@ export interface Market {
   id: string;
   name: string;
   status: string;
+  isDaily: boolean;
   // Add more fields as needed
 }
 

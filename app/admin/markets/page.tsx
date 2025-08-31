@@ -29,6 +29,7 @@ import {
   resolveMarket,
 } from "@/lib/api";
 import { toast } from "sonner"
+import { Switch } from "@/components/ui/switch"
 
 const orderedCategories = [
   "News",
@@ -56,6 +57,7 @@ export default function MarketsPage() {
     endDate: "",
     image: null as File | null,
     imageHint: "",
+    isDaily: false,
   });
   const [marketsData, setMarketsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -181,7 +183,7 @@ const handleArchive = async (marketId: string) => {
   const handleCreateMarket = async () => {
     setLoading(true)
     try {
-      const { image, imageHint, question, category, endDate } = marketCreate;
+      const { image, imageHint, question, category, endDate, isDaily } = marketCreate;
       let newMarket;
       // Compose the payload according to backend model
       // Required: question, category, startDate, endDate
@@ -223,6 +225,7 @@ const handleArchive = async (marketId: string) => {
         category,
         startDate,
         endDate: endDateISO,
+        isDaily,
         status: "Open",
       };
       if (imagePayload) {
@@ -239,6 +242,7 @@ const handleArchive = async (marketId: string) => {
           endDate: "",
           image: null,
           imageHint: "",
+          isDaily: false,
         });
       }
     } catch (e) {
@@ -344,6 +348,10 @@ const handleArchive = async (marketId: string) => {
                     Upload an image for the market (JPG, PNG, GIF - Max 5MB)
                   </p>
                 </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="isDaily">Is Daily</Label>
+                <Switch id="isDaily" checked={marketCreate.isDaily} onCheckedChange={e => setMarketCreate(mc => ({ ...mc, isDaily: e }))} />
               </div>
               <Button disabled={loading} onClick={handleCreateMarket}>
                 {loading ? "Creating..." : "Create Market"}
