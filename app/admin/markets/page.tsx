@@ -93,9 +93,6 @@ export default function MarketsPage() {
       (market.category || "")
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
-      (market.isDaily || "")
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
       (market.status || "")
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
