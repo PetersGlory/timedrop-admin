@@ -480,6 +480,7 @@ const handleArchive = async (marketId: string) => {
                 <TableHead>Market</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Is Daily</TableHead>
                 <TableHead>Start Date</TableHead>
                 <TableHead>End Date</TableHead>
                 <TableHead className="w-auto">Resolve / Actions</TableHead>
@@ -565,6 +566,9 @@ const handleArchive = async (marketId: string) => {
                           >
                             {market.status}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{market.isDaily ? "Yes" : "No"}</Badge>
                         </TableCell>
                         <TableCell>
                           {market.startDate ? new Date(market.startDate).toLocaleDateString() : ""}
