@@ -93,6 +93,9 @@ export default function MarketsPage() {
       (market.category || "")
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
+      (market.isDaily || "")
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
       (market.status || "")
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
@@ -408,6 +411,23 @@ const handleArchive = async (marketId: string) => {
                   </Badge>
                 </div>
               </div>
+              
+              <div>
+                <Label className="font-semibold">isDaily</Label>
+                <div className="mt-1">
+                  <Badge
+                    variant={
+                      selectedMarket.isDaily
+                        ? "default"
+                        : selectedMarket.isDaily === false
+                        ? "destructive"
+                        : "secondary"
+                    }
+                  >
+                    {selectedMarket.status}
+                  </Badge>
+                </div>
+              </div>
               <div>
                 <Label className="font-semibold">Start Date</Label>
                 <div className="mt-1">
@@ -424,6 +444,7 @@ const handleArchive = async (marketId: string) => {
                     : ""}
                 </div>
               </div>
+
               {selectedMarket.image && selectedMarket.image.url && (
                 <div>
                   <Label className="font-semibold">Image</Label>
@@ -462,6 +483,22 @@ const handleArchive = async (marketId: string) => {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              className="px-4"
+              // You may want to add logic to highlight the active filter
+              // e.g. variant={marketStatus === 'open' ? 'default' : 'outline'}
+              onClick={() => setSearchTerm('Open')}
+            >
+              Open
+            </Button>
+            <Button
+              variant="outline"
+              className="px-4"
+              onClick={() => setSearchTerm('closed')}
+            >
+              Closed
+            </Button>
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
