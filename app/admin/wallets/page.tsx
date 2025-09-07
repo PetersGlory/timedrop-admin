@@ -62,7 +62,7 @@ export default function PortfoliosPage() {
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+            <div className="text-2xl font-bold">₦{totalBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
             <p className="text-xs text-muted-foreground">+8.2% from last month</p>
           </CardContent>
         </Card>
@@ -72,7 +72,7 @@ export default function PortfoliosPage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalDeposits.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+            <div className="text-2xl font-bold">₦{totalDeposits.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
             <p className="text-xs text-muted-foreground">+12.5% from last month</p>
           </CardContent>
         </Card>
@@ -82,7 +82,7 @@ export default function PortfoliosPage() {
             <TrendingDown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalWithdrawals.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+            <div className="text-2xl font-bold">₦{totalWithdrawals.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
             <p className="text-xs text-muted-foreground">+5.1% from last month</p>
           </CardContent>
         </Card>
@@ -153,7 +153,7 @@ export default function PortfoliosPage() {
                           </div>
                         </TableCell>
                         <TableCell className="font-medium">
-                          ${Number(portfolio.balance || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                          ₦{Number(portfolio.balance || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell>
                           <Badge variant={portfolio.status === "active" ? "default" : "destructive"}>

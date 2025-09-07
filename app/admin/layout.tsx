@@ -3,7 +3,7 @@
 import type React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BarChart3, TrendingUp, Wallet, Users, Settings, Menu, Sun, Moon, LogOut, Bell, CreditCardIcon } from "lucide-react"
+import { BarChart3, TrendingUp, Wallet, Users, Settings, Menu, Sun, Moon, LogOut, Bell, CreditCardIcon, List } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
@@ -24,6 +24,7 @@ const navigation = [
   { name: "Dashboard", href: "/admin/dashboard", icon: BarChart3 },
   { name: "Analytics", href: "/admin/analysis", icon: BarChart3 },
   { name: "Markets", href: "/admin/markets", icon: TrendingUp }, //, badge: "3"
+  { name: "Orders", href: "/admin/orders", icon: List }, //, badge: "3"
   { name: "Portfolios", href: "/admin/wallets", icon: Wallet },
   { name: "Users", href: "/admin/users", icon: Users },
   { name: "Withdrawals", href: "/admin/withdrawals", icon: CreditCardIcon },
