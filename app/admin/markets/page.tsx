@@ -393,6 +393,10 @@ const handleArchive = async (marketId: string) => {
                 <div className="mt-1 break-words">{selectedMarket.category}</div>
               </div>
               <div>
+                <Label className="font-semibold">Total Users</Label>
+                <div className="mt-1 break-words">{selectedMarket.totalBidUsers}</div>
+              </div>
+              <div>
                 <Label className="font-semibold">Status</Label>
                 <div className="mt-1">
                   <Badge
@@ -515,6 +519,7 @@ const handleArchive = async (marketId: string) => {
                 <TableHead>Category</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Is Daily</TableHead>
+                <TableHead>Total Users</TableHead>
                 <TableHead>Start Date</TableHead>
                 <TableHead>End Date</TableHead>
                 <TableHead className="w-auto">Resolve / Actions</TableHead>
@@ -603,6 +608,9 @@ const handleArchive = async (marketId: string) => {
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">{market.isDaily ? "Yes" : "No"}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{market.totalBidUsers ?? ""}</Badge>
                         </TableCell>
                         <TableCell>
                           {market.startDate ? new Date(market.startDate).toLocaleDateString() : ""}
