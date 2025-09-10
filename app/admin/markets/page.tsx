@@ -30,6 +30,7 @@ import {
 } from "@/lib/api";
 import { toast } from "sonner"
 import { Switch } from "@/components/ui/switch"
+import { isPast } from "date-fns"
 
 const orderedCategories = [
   "News",
@@ -46,7 +47,16 @@ const orderedCategories = [
   "Misc",
 ]
 
-// Remove unused mock markets
+const isMarketClosed = (endDate: string): boolean => {
+  const now = new Date();
+  const marketEndDate = new Date(endDate);
+  
+  // Use isPast for more precise comparison that includes time
+  return isPast(marketEndDate);
+  
+  // Alternative approach - more explicit comparison:
+  // return now >= marketEndDate;
+};
 
 export default function MarketsPage() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -86,19 +96,27 @@ export default function MarketsPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | "Open" | "closed" | "archieve">("all");
 
   const filteredMarkets = marketsData.filter((market: any) => {
+    const lowerSearch = searchTerm.toLowerCase();
+
     const matchesSearch =
       (market.question || market.title || market.name || "")
         .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
+        .includes(lowerSearch) ||
       (market.category || "")
         .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
+        .includes(lowerSearch) ||
       (market.status || "")
         .toLowerCase()
-        .includes(searchTerm.toLowerCase());
+        .includes(lowerSearch);
 
-    const matchesStatus =
-      statusFilter === "all" ? true : (market.status || "").toLowerCase() === statusFilter.toLowerCase();
+    let matchesStatus = statusFilter === "all"
+      ? true
+      : (market.status || "").toLowerCase() === statusFilter.toLowerCase();
+
+    // If searching for "closed", also check if the market is actually closed by endDate
+    if (lowerSearch === "closed") {
+      matchesStatus = matchesStatus || isMarketClosed(market.endDate);
+    }
 
     return matchesSearch && matchesStatus;
   });
