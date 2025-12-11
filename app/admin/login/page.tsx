@@ -78,9 +78,6 @@ export default function LoginPage() {
                 {isLoading ? "Signing in..." : "Sign in"}
               </Button>
             </form>
-            <div className="mt-4 text-center text-sm text-muted-foreground">
-              Demo credentials: admin@timedrop.com / admin123
-            </div>
           </CardContent>
         </Card>
       </div>
