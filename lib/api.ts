@@ -233,8 +233,21 @@ export const getWithdrawalById = (id: string) =>
   apiFetch<any>(`/admin/withdrawals/${id}`);
 
 
-export const getAnalytics = () =>
-  apiFetch<Analytics>(`/admin/revenue-stats`);
+/**
+ * Get platform revenue and trading volume statistics.
+ * - Revenue: sum of transaction_fee for all 'trade' transactions.
+ * - Volume: sum of amount for all 'trade' transactions.
+ * - Todays revenue/date revenue: sum of transaction_fee for 'trade' transactions created on a specific date (if provided) or today.
+ *
+ * Optional query parameters:
+ *   - date (string, optional): ISO string or yyyy-mm-dd. If supplied, returns revenue for that day under `todaysRevenue`. Otherwise, uses the current day.
+ *
+ * @param date (optional) - string (ISO string or yyyy-mm-dd)
+ */
+export const getAnalytics = (date?: string) => {
+  const params = date ? `?date=${encodeURIComponent(date)}` : '';
+  return apiFetch<Analytics>(`/admin/revenue-stats${params}`);
+};
 
 export const updateWithdrawal = (id: string, data: Partial<any>) =>
   apiFetch<any>(`/admin/withdrawals/${id}`, {

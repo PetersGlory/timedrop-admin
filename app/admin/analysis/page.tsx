@@ -12,23 +12,44 @@ export default function AnalysisPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchAnalytics = async () => {
-      try {
-        setLoading(true);
-        const data = await getAnalytics();
-        setAnalytics(data);
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch analytics');
-        console.error('Error fetching analytics:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // New: State for custom date
+  const [selectedDate, setSelectedDate] = useState<string>('');
 
-    fetchAnalytics();
+  // Derived today string for input/date param
+  const todayISO = (() => {
+    const now = new Date();
+    // yyyy-mm-dd
+    return now.toISOString().slice(0, 10);
+  })();
+
+  // Provide date param to getAnalytics if selected
+  const fetchAnalyticsData = async (date?: string) => {
+    try {
+      setLoading(true);
+      // Pass date param if provided and not falsy
+      const data = await getAnalytics(date ? date  : undefined);
+      setAnalytics(data);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch analytics');
+      console.error('Error fetching analytics:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // On mount, fetch for today
+  useEffect(() => {
+    fetchAnalyticsData(todayISO);
+    setSelectedDate(todayISO);
+    // eslint-disable-next-line
   }, []);
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSelectedDate(value);
+    fetchAnalyticsData(value);
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-NG', {
@@ -51,8 +72,9 @@ export default function AnalysisPage() {
             <Skeleton className="h-8 w-48" />
             <Skeleton className="h-4 w-64 mt-2" />
           </div>
+          <Skeleton className="h-10 w-48 rounded" />
         </div>
-        
+
         <div className="grid gap-4 md:grid-cols-3">
           {[1, 2, 3].map((i) => (
             <Card key={i}>
@@ -81,8 +103,15 @@ export default function AnalysisPage() {
               View detailed analytics and revenue statistics
             </p>
           </div>
+          <input
+            type="date"
+            className="border rounded px-3 py-2"
+            value={selectedDate}
+            onChange={handleDateChange}
+            max={todayISO}
+          />
         </div>
-        
+
         <Card className="border-destructive">
           <CardContent className="pt-6">
             <div className="flex items-center space-x-2 text-destructive">
@@ -112,8 +141,14 @@ export default function AnalysisPage() {
               View detailed analytics and revenue statistics
             </p>
           </div>
+          <input
+            type="date"
+            className="border rounded px-3 py-2"
+            value={selectedDate}
+            onChange={handleDateChange}
+            max={todayISO}
+          />
         </div>
-        
         <Card>
           <CardContent className="pt-6">
             <p className="text-muted-foreground">No analytics data available</p>
@@ -132,15 +167,26 @@ export default function AnalysisPage() {
             View detailed analytics and revenue statistics
           </p>
         </div>
-        <Badge variant="secondary" className="flex items-center gap-2">
-          <Calendar className="h-4 w-4" />
-          {new Date().toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          })}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            {selectedDate
+              ? new Date(selectedDate).toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })
+              : ''}
+          </Badge>
+          <input
+            type="date"
+            className="border rounded px-3 py-2 ml-2"
+            value={selectedDate}
+            onChange={handleDateChange}
+            max={todayISO}
+          />
+        </div>
       </div>
 
       {/* Key Metrics */}
@@ -173,13 +219,15 @@ export default function AnalysisPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {selectedDate === todayISO ? "Today's Revenue" : "Date Revenue"}
+            </CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(analytics.todaysRevenue)}</div>
             <p className="text-xs text-muted-foreground">
-              Revenue generated today
+              Revenue generated {selectedDate === todayISO ? 'today' : `on ${selectedDate}`}
             </p>
           </CardContent>
         </Card>
@@ -201,7 +249,7 @@ export default function AnalysisPage() {
                 <span className="text-sm font-bold">{formatCurrency(analytics.totalRevenue)}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Today's Revenue</span>
+                <span className="text-sm font-medium">{selectedDate === todayISO ? "Today's Revenue" : "Date Revenue"}</span>
                 <span className="text-sm font-bold">{formatCurrency(analytics.todaysRevenue)}</span>
               </div>
               <div className="flex items-center justify-between">
@@ -276,7 +324,7 @@ export default function AnalysisPage() {
               <div className="text-2xl font-bold text-purple-600">
                 {analytics.todaysRevenue > 0 ? '✓' : '—'}
               </div>
-              <p className="text-sm text-muted-foreground">Today Active</p>
+              <p className="text-sm text-muted-foreground">Date Active</p>
             </div>
           </div>
         </CardContent>
