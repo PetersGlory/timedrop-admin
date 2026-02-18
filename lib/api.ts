@@ -1,4 +1,4 @@
-const BASE_URL = 'https://backendapi.timedrop.live/api'; //'https://timedrop-backend.onrender.com/api';
+const BASE_URL = 'http://localhost:450/api'//'https://backendapi.timedrop.live/api'; //'https://timedrop-backend.onrender.com/api';
 
 // --- Types (adjust as needed based on backend models) ---
 export interface User {
@@ -263,3 +263,192 @@ export const resolveMarket = (id: string, resolutionData: { outcome: string }) =
       result: resolutionData.outcome,
     }),
   });
+  
+// --- Agent Types ---
+export interface Agent {
+  id: string;
+  name: string;
+  email: string;
+  referralCode: string;
+  totalReferrals: number;
+  totalReferralVolume: string | number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CreateAgentData {
+  name: string;
+  email: string;
+}
+
+export interface AgentsResponse {
+  success: boolean;
+  agents: Agent[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+export interface AgentResponse {
+  success: boolean;
+  message: string;
+  agent: Agent;
+}
+
+// --- Referral Tracking Types ---
+export interface ReferralTracking {
+  id: string;
+  userId: string;
+  userName: string;
+  marketId: string;
+  orderAmount: number;
+  orderType: 'BUY' | 'SELL';
+  createdAt: string;
+}
+
+export interface ReferralStats {
+  success: boolean;
+  agent: {
+    name: string;
+    email: string;
+    referralCode: string;
+    memberSince: string;
+  };
+  stats: {
+    totalReferrals: number;
+    totalVolume: number;
+    last30Days: {
+      referrals: number;
+      volume: number;
+    };
+  };
+  recentReferrals: ReferralTracking[];
+}
+
+export interface ValidateReferralResponse {
+  success: boolean;
+  valid: boolean;
+  agent?: {
+    name: string;
+    referralCode: string;
+  };
+}
+
+export interface TrackReferralData {
+  referralCode: string;
+  marketId: string;
+  orderAmount: number;
+  orderId?: string;
+  orderType?: 'BUY' | 'SELL';
+}
+
+export interface TrackReferralResponse {
+  success: boolean;
+  message: string;
+  tracking?: {
+    id: string;
+    referralCode: string;
+    marketId: string;
+    orderAmount: number;
+    createdAt: string;
+  };
+}
+
+export interface UserReferralHistoryResponse {
+  success: boolean;
+  referrals: ReferralTracking[];
+}
+
+// --- Agent Endpoints ---
+
+/**
+ * Get all agents (admin only)
+ * @param page - Page number (default: 1)
+ * @param limit - Items per page (default: 50)
+ */
+export const getAllAgents = (page = 1, limit = 50) =>
+  apiFetch<AgentsResponse>(`/agents/all?page=${page}&limit=${limit}`);
+
+/**
+ * Get single agent by referral code or email
+ * @param referralCode - Agent's referral code (optional)
+ * @param email - Agent's email (optional)
+ */
+export const getAgent = (referralCode?: string, email?: string) => {
+  const params = new URLSearchParams();
+  if (referralCode) params.append('referralCode', referralCode);
+  if (email) params.append('email', email);
+  return apiFetch<{ success: boolean; agent: Agent }>(
+    `/agents?${params.toString()}`,
+    {},
+    false // Public endpoint
+  );
+};
+
+/**
+ * Create a new agent
+ * @param data - Agent data (name and email)
+ */
+export const createAgent = (data: CreateAgentData) =>
+  apiFetch<AgentResponse>('/agents/register', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }, false); // Public endpoint - anyone can register as agent
+
+/**
+ * Update agent status (admin only)
+ * @param id - Agent ID
+ * @param data - Status update data
+ */
+export const updateAgentStatus = (id: string, data: { isActive: boolean }) =>
+  apiFetch<{ success: boolean; message: string; agent: Agent }>(
+    `/agents/${id}/status`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }
+  );
+
+// --- Referral Tracking Endpoints ---
+
+/**
+ * Get referral statistics for an agent
+ * @param referralCode - Agent's referral code
+ */
+export const getReferralStats = (referralCode: string) =>
+  apiFetch<ReferralStats>(
+    `/referrals/stats?referralCode=${encodeURIComponent(referralCode)}`,
+    {},
+    false // Public endpoint
+  );
+
+/**
+ * Validate a referral code
+ * @param referralCode - Referral code to validate
+ */
+export const validateReferralCode = (referralCode: string) =>
+  apiFetch<ValidateReferralResponse>(
+    `/referrals/validate?referralCode=${encodeURIComponent(referralCode)}`,
+    {},
+    false // Public endpoint
+  );
+
+/**
+ * Track a referral usage (called when placing orders)
+ * @param data - Referral tracking data
+ */
+export const trackReferral = (data: TrackReferralData) =>
+  apiFetch<TrackReferralResponse>('/referrals/track', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+/**
+ * Get user's referral usage history
+ */
+export const getUserReferralHistory = () =>
+  apiFetch<UserReferralHistoryResponse>('/referrals/my-history');

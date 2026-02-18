@@ -27,6 +27,7 @@ const navigation = [
   { name: "Orders", href: "/admin/orders", icon: List }, //, badge: "3"
   { name: "Portfolios", href: "/admin/wallets", icon: Wallet },
   { name: "Users", href: "/admin/users", icon: Users },
+  { name: "Agents", href: "/admin/agents", icon: Users },
   { name: "Withdrawals", href: "/admin/withdrawals", icon: CreditCardIcon },
   { name: "Settings", href: "/admin/settings", icon: Settings },
 ]
